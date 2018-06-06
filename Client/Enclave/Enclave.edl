@@ -1,0 +1,12 @@
+enclave {
+    from "sgx_tae_service.edl" import *;
+    from "sgx_tkey_exchange.edl" import *;
+
+    include "sgx_tkey_exchange.h"
+    include "sgx_trts.h"
+
+    trusted {
+        public int encalve_init_ra(int b_pse, [out] uint32_t *context);
+        public int encalve_close_ra(uint32_t context);
+    };
+};

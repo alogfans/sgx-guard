@@ -1,0 +1,13 @@
+enclave {
+    trusted {
+        public int EnclaveAesEncryption([in, count=size] const uint8_t *input_buffer,
+                                        uint32_t size,
+                                        [out, count=size] uint8_t *output_buffer,
+                                        [out, count=16] uint8_t *mac_buffer);
+
+        public int EnclaveAesDecryption([in, count=size] const uint8_t *input_buffer,
+                                        uint32_t size,
+                                        [out, count=size] uint8_t *output_buffer,
+                                        [in, count=16] const uint8_t *mac_buffer);
+    };
+};
