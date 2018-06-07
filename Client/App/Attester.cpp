@@ -3,6 +3,7 @@
 //
 
 #include "Attester.h"
+#include "remote_attestation_result.h"
 #include <sgx_uae_service.h>
 #include <sgx_ukey_exchange.h>
 #include <iostream>
@@ -101,8 +102,10 @@ void Attester::Attest(Socket &socket) {
     socket.WriteCommand(ATT_MSG3, msg3);
     socket.ReadCommand(cmd_type_ret, msg3);
     if (cmd_type_ret == ATT_ERR) {
-        const char *str_buf = (const char *) msg2.data();
+        const char *str_buf = (const char *) msg3.data();
         printf("error %s\n", str_buf);
         exit(EXIT_FAILURE);
     }
+
+    // tpm_enc_att_state_request_message_t *ret_value = (tpm_enc_att_state_request_message_t *) msg3.data();
 }

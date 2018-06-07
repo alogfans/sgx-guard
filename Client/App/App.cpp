@@ -111,7 +111,7 @@ int SGX_CDECL main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    // attester.Attest(socket);
+    attester.Attest(socket);
 
     std::vector<uint8_t> dummy, data_stream;
 
