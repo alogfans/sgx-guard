@@ -22,7 +22,7 @@ Attester::Attester(const EnclaveLoader &loader) : loader(loader) {
         exit(EXIT_FAILURE);
     }
 
-    ret = encalve_init_ra(loader.enclave_id, (int *) &ret_call, 0, &ra_context);
+    ret = encalve_init_ra(loader.enclave_id, (int *) &ret_call, 1, &ra_context);
     if (ret != SGX_SUCCESS || ret_call != SGX_SUCCESS) {
         std::cerr << "encalve_init_ra failed: " << ret << ", " << ret_call << std::endl;
         exit(EXIT_FAILURE);

@@ -68,6 +68,18 @@ void handle_routine(Socket &socket) {
         status = EnclaveAesDecryption(enclave_id, &ret, input_buf.data() + 16, output_buf.size(), output_buf.data(), input_buf.data());
         break;
 
+    case CMD_SET_KEY:
+        status = SetAesKey(enclave_id, &ret, input_buf.data(), input_buf.size());
+        /*{
+            std::vector<uint8_t> buf;
+            buf.resize(16);
+            GetAesKey(enclave_id, &ret, buf.data(), 16);
+            for (auto &v : buf) {
+                printf("%c\n", (char) v);
+            }
+        }*/
+        break;
+
     default:
         write_string("Invalid command", output_buf);
         socket.WriteCommand(CMD_ERR, output_buf);

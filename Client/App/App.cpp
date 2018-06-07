@@ -42,6 +42,8 @@ void parse_arguments(int argc, char **argv) {
     auto decrypt_cmd = app.add_subcommand("decrypt", "Decrypt a local file");
     decrypt_cmd->add_option("--plain", plain_path, "Plain document path")->required(true);
     decrypt_cmd->add_option("--cipher", cipher_path, "Cipher document path")->required(true);
+    auto setkey_cmd = app.add_subcommand("setkey", "Set server's AES key");
+    setkey_cmd->add_option("--keyfile", plain_path, "AES 128bit key file")->required(true);
     app.require_subcommand(1);
 
     try {
@@ -54,6 +56,8 @@ void parse_arguments(int argc, char **argv) {
         cmd_type = CMD_ENCRYPT;
     } else if (*decrypt_cmd) {
         cmd_type = CMD_DECRYPT;
+    } else if (*setkey_cmd) {
+        cmd_type = CMD_SET_KEY;
     }
 }
 
@@ -109,9 +113,24 @@ int SGX_CDECL main(int argc, char **argv) {
 
     // attester.Attest(socket);
 
-    std::vector<uint8_t> data_stream;
+    std::vector<uint8_t> dummy, data_stream;
 
-    if (cmd_type == CMD_ENCRYPT) {
+    if (cmd_type == CMD_SET_KEY) {
+        read_all(plain_path, dummy);
+        if (dummy.size() < 16) {
+            printf("File is too short. must be 16 bytes\n");
+            return EXIT_FAILURE;
+        }
+        int ret = 0, sealed_size = 0;
+        sgx_status_t status; 
+        enclave_seal_size(loader.enclave_id, &sealed_size, 16);
+        data_stream.resize(sealed_size);
+        status = enclave_seal_aes_key(loader.enclave_id, &ret, dummy.data(), sealed_size, data_stream.data());
+        if (status || ret) {
+             printf("enclave_seal_aes_key error %x %x\n", status, ret);
+             return EXIT_FAILURE;
+        }
+    } else if (cmd_type == CMD_ENCRYPT) {
         read_all(plain_path, data_stream);
     } else if (cmd_type == CMD_DECRYPT) {
         read_all(cipher_path, data_stream);

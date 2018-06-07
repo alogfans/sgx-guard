@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <sgx_tae_service.h>
 #include <sgx_tkey_exchange.h>
-
+#include <sgx_tseal.h>
 #include "Enclave.h"
 #include "Enclave_t.h"
 
@@ -44,5 +44,13 @@ int encalve_init_ra(int b_pse, uint32_t *context) {
 
 int encalve_close_ra(uint32_t context) {
     return sgx_ra_close(context);
+}
+
+int enclave_seal_size(uint32_t payload_size) {
+    return sgx_calc_sealed_data_size(0, payload_size);
+}
+
+int enclave_seal_aes_key(uint8_t *aes_key, uint32_t sealed_size, uint8_t *sealed) {
+    return sgx_seal_data(0, NULL, 16, aes_key, sealed_size, (sgx_sealed_data_t *) sealed);
 }
 

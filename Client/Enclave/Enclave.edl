@@ -6,7 +6,9 @@ enclave {
     include "sgx_trts.h"
 
     trusted {
+        public int enclave_seal_aes_key([in, size=16] uint8_t *aes_key, uint32_t sealed_size, [out, size=sealed_size] uint8_t *sealed);
         public int encalve_init_ra(int b_pse, [out] uint32_t *context);
         public int encalve_close_ra(uint32_t context);
+        public int enclave_seal_size(uint32_t payload_size);
     };
 };
