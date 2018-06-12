@@ -64,7 +64,7 @@ bool derive_key(const sgx_ec256_dh_shared_t *p_shared_key,
     return true;
 }
 
-int enclave_build_msg1(sgx_ec256_public_t *g_a, sgx_ec256_public_t *g_b, sgx_ec256_signature_t *sign_gb_ga, sgx_cmac_128bit_tag_t *mac) {
+int enclave_ra_build_msg2(sgx_ec256_public_t *g_a, sgx_ra_msg2_t *msg2_raw, uint32_t msg2_len, const uint8_t *sig_rl, uint32_t sig_rl_size) {
     sgx_ecc_state_handle_t ecc_state;
 
     sgx_ec256_public_t public_key;
@@ -85,12 +85,22 @@ int enclave_build_msg1(sgx_ec256_public_t *g_a, sgx_ec256_public_t *g_b, sgx_ec2
     derive_key(&dh_key, 1, &mk_key, &vk_key);
 
     sgx_ec256_public_t gb_ga[2];
-    memcpy(g_b, &public_key, sizeof(sgx_ec256_public_t));
+    memcpy(&msg2_raw->g_b, &public_key, sizeof(sgx_ec256_public_t));
     memcpy(&gb_ga[0], &public_key, sizeof(sgx_ec256_public_t));
     memcpy(&gb_ga[1], g_a, sizeof(sgx_ec256_public_t));
 
-    sgx_ecdsa_sign((uint8_t *) &gb_ga, sizeof(gb_ga), &g_sp_priv_key, sign_gb_ga, ecc_state);
-    sgx_rijndael128_cmac_msg(&smk_key, (uint8_t *) &public_key, sizeof(public_key), mac);
+    uint8_t spid_str[] = { 0x19, 0x0D, 0x7D, 0xF5, 0x89, 0x64, 0x16, 0x6B, 
+                           0xE8, 0xD4, 0x48, 0x89, 0x22, 0x55, 0x90, 0x1D };
+
+    memcpy(&msg2_raw->spid, spid_str, sizeof(spid_str));
+    msg2_raw->sig_rl_size = sig_rl_size;
+    msg2_raw->quote_type = 0;
+    msg2_raw->kdf_id = 1;
+    memcpy(msg2_raw->sig_rl, sig_rl, sig_rl_size);
+    sgx_ecdsa_sign((uint8_t *) &gb_ga, sizeof(gb_ga), &g_sp_priv_key, &msg2_raw->sign_gb_ga, ecc_state);
+
+    const uint32_t mac_size = sizeof(sgx_ec256_public_t) + sizeof(sgx_spid_t) + 2 * sizeof(uint16_t) + sizeof(sgx_ec256_signature_t);
+    sgx_rijndael128_cmac_msg(&smk_key, (uint8_t *) msg2_raw, mac_size, &msg2_raw->mac);
 
     sgx_ecc256_close_context(ecc_state);
 }

@@ -75,17 +75,8 @@ bool onMsg1Arrival(const std::vector<uint8_t> &msg1, std::vector<uint8_t> &msg2,
 
     auto msg2_raw = (sgx_ra_msg2_t *) msg2.data();
 
-    const uint8_t spid_str[] = { 0x19, 0x0D, 0x7D, 0xF5, 0x89, 0x64, 0x16, 0x6B, 
-                                 0xE8, 0xD4, 0x48, 0x89, 0x22, 0x55, 0x90, 0x1D };
-
-    memcpy(&msg2_raw->spid, spid_str, sizeof(spid_str));
-    msg2_raw->sig_rl_size = (uint32_t) sigRL.size();
-    msg2_raw->quote_type = 0;
-    msg2_raw->kdf_id = 2;
-    memcpy(msg2_raw->sig_rl, sigRL.c_str(), sigRL.size());
-
     int ret = 0;
-    enclave_build_msg1(enclave_id, &ret, &msg1_raw->g_a, &msg2_raw->g_b, &msg2_raw->sign_gb_ga, &msg2_raw->mac);
+    enclave_ra_build_msg2(enclave_id, &ret, &msg1_raw->g_a, msg2_raw, msg2.size(), (const uint8_t *) sigRL.c_str(), sigRL.size());
     return (ret == 0);
 }
 
@@ -151,7 +142,7 @@ bool handle_event(int expected_type, Socket &socket, IASClient &client) {
 
 int response_attestation(Socket &socket) {
     std::vector<uint8_t> input_buf, output_buf;
-    IASClient client("ias_cert.pem");
+    IASClient client("./ias_cert.pem");
 
     if (!handle_event(ATT_MSG0, socket, client)) {
         return -1;
@@ -164,51 +155,6 @@ int response_attestation(Socket &socket) {
     if (!handle_event(ATT_MSG3, socket, client)) {
         return -1;
     }
-
-/*
-    ra_samp_response_header_t *p_msg2, *p_result;
-    if (sp_ra_proc_msg1_req((const sample_ra_msg1_t *) input_buf.data(), input_buf.size(), &p_msg2)) {
-        write_string("attestation 1 fault", output_buf);
-        socket.WriteCommand(ATT_ERR, output_buf);
-        return -1;
-    }
-
-    output_buf.resize(p_msg2->size);
-    memcpy(output_buf.data(), p_msg2->body, output_buf.size());
-    socket.WriteCommand(ATT_MSG2, output_buf);
-
-    socket.ReadCommand(cmd_type, input_buf);
-    if (cmd_type != ATT_MSG3) {
-        write_string("wrong message", output_buf);
-        socket.WriteCommand(ATT_ERR, output_buf);
-        return -1;
-    }
-
-    if (sp_ra_proc_msg3_req((const sample_ra_msg3_t *) input_buf.data(), input_buf.size(), &p_result)){
-        write_string("attestation 3 fault", output_buf);
-        socket.WriteCommand(ATT_ERR, output_buf);
-        return -1;
-    }
-
-    output_buf.resize(p_result->size);
-    memcpy(output_buf.data(), p_result->body, output_buf.size());
-    socket.WriteCommand(ATT_MSG3, output_buf);
-
-
-    socket.ReadCommand(cmd_type, input_buf);
-    if (cmd_type != ATT_CONFIRM) {
-        write_string("wrong message", output_buf);
-        socket.WriteCommand(ATT_ERR, output_buf);
-        return -1;
-    }
-
-    if (sp_ra_proc_msg_tpm_attest_confirm((tpm_enc_att_state_response_message_t *) input_buf.data(), input_buf.size())) {
-        return -1;
-    }
-*/
-
-    // free(p_msg2);
-    // free(p_result);
 
     return 0;
 }

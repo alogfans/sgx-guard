@@ -31,7 +31,7 @@ extern "C" {
 	    }
 	};
 
-    int enclave_build_msg1(sgx_ec256_public_t *g_a, sgx_ec256_public_t *g_b, sgx_ec256_signature_t *sign_gb_ga, sgx_cmac_128bit_tag_t *mac);
+int enclave_ra_build_msg2(sgx_ec256_public_t *g_a, sgx_ra_msg2_t *msg2_raw, uint32_t msg2_len, const uint8_t *sig_rl, uint32_t sig_rl_size);
 
 	typedef struct {
 	    uint8_t counter[4];
