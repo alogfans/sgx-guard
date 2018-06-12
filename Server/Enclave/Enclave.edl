@@ -1,4 +1,6 @@
 enclave {
+    include "sgx_key_exchange.h"
+    
     trusted {
         public int SetAesKey([in, count=size] const uint8_t *aes_key, int size);
         public int GetAesKey([out, count=size] uint8_t *aes_key, int size);
@@ -11,5 +13,10 @@ enclave {
                                         uint32_t size,
                                         [out, count=size] uint8_t *output_buffer,
                                         [in, count=16] const uint8_t *mac_buffer);
+
+        public int enclave_build_msg1([in] sgx_ec256_public_t *g_a, 
+                                      [out] sgx_ec256_public_t *g_b,
+                                      [out] sgx_ec256_signature_t *sign_gb_ga,
+                                      [out] sgx_cmac_128bit_tag_t *mac);
     };
 };

@@ -11,8 +11,10 @@
 
 #include "Enclave_u.h"
 #include "Socket.h"
+#include "IASClient.h"
 
-#include "service_provider.h"
+#include <sgx_uae_service.h>
+#include <sgx_ukey_exchange.h>
 
 static sgx_enclave_id_t enclave_id;
 uint16_t server_port = 8080;
@@ -42,38 +44,128 @@ void parse_arguments(int argc, char **argv) {
 
 void write_string(const std::string &str, std::vector<uint8_t> &buf) {
     buf.clear();
-    buf.resize(str.size());
+    buf.resize(str.size() + 1);
     memcpy(buf.data(), str.c_str(), buf.size());
 }
 
-int response_attestation(Socket &socket) {
-    int cmd_type;
-    sgx_status_t status;
+bool onMsg0Arrival(const std::vector<uint8_t> &msg0) {
+    uint32_t extended_epid_group_id;
+    memcpy(&extended_epid_group_id, msg0.data(), sizeof(uint32_t));
+    if (extended_epid_group_id) {
+        return false;
+    }
+
+    return true;
+}
+
+bool onMsg1Arrival(const std::vector<uint8_t> &msg1, std::vector<uint8_t> &msg2, IASClient &client) {
+    auto msg1_raw = (sgx_ra_msg1_t *) msg1.data();
+
+    char gid[10];
+    sprintf(gid, "%02X%02X%02X%02X", msg1_raw->gid[3], msg1_raw->gid[2], msg1_raw->gid[1], msg1_raw->gid[0]);
+    printf("%s\n", gid);
+
+    std::string sigRL;
+    if (!client.retrieveSigRL(gid, sigRL)) {
+        return false;
+    }
+
+    msg2.resize(sizeof(sgx_ra_msg2_t) + sigRL.size());
+    memset(msg2.data(), 0, msg2.size());
+
+    auto msg2_raw = (sgx_ra_msg2_t *) msg2.data();
+
+    const uint8_t spid_str[] = { 0x19, 0x0D, 0x7D, 0xF5, 0x89, 0x64, 0x16, 0x6B, 
+                                 0xE8, 0xD4, 0x48, 0x89, 0x22, 0x55, 0x90, 0x1D };
+
+    memcpy(&msg2_raw->spid, spid_str, sizeof(spid_str));
+    msg2_raw->sig_rl_size = (uint32_t) sigRL.size();
+    msg2_raw->quote_type = 0;
+    msg2_raw->kdf_id = 2;
+    memcpy(msg2_raw->sig_rl, sigRL.c_str(), sigRL.size());
+
     int ret = 0;
+    enclave_build_msg1(enclave_id, &ret, &msg1_raw->g_a, &msg2_raw->g_b, &msg2_raw->sign_gb_ga, &msg2_raw->mac);
+    return (ret == 0);
+}
+
+bool onMsg3Arrival(const std::vector<uint8_t> &msg3, std::vector<uint8_t> &msg4, IASClient &client) {
+    auto msg3_raw = (sgx_ra_msg3_t *) msg3.data();
+    printf("Quote %s\n", (char *) msg3_raw->quote);
+    std::string quote_str((char *) msg3_raw->quote);
+    auto result = client.report(quote_str);
+    if (result.empty()) {
+        return false;
+    }
+    printf("Success!\n");
+    return true;
+}
+
+bool handle_event(int expected_type, Socket &socket, IASClient &client) {
+    int cmd_type;
     std::vector<uint8_t> input_buf, output_buf;
 
     socket.ReadCommand(cmd_type, input_buf);
-    if (cmd_type != ATT_MSG0) {
+    if (cmd_type != expected_type) {
         write_string("wrong message", output_buf);
         socket.WriteCommand(ATT_ERR, output_buf);
+        return false;
+    }
+
+    // do operation now
+    if (cmd_type == ATT_MSG0) {
+        if (onMsg0Arrival(input_buf)) {
+            socket.WriteCommand(ATT_MSG0, output_buf);
+            return true;
+        } else {
+            write_string("failed for msg 0", output_buf);
+            socket.WriteCommand(ATT_ERR, output_buf);
+            return false;
+        }
+    }
+
+    if (cmd_type == ATT_MSG1) {
+        if (onMsg1Arrival(input_buf, output_buf, client)) {
+            socket.WriteCommand(ATT_MSG2, output_buf);
+            return true;
+        } else {
+            write_string("failed for msg 1", output_buf);
+            socket.WriteCommand(ATT_ERR, output_buf);
+            return false;
+        }
+    }
+
+    if (cmd_type == ATT_MSG3) {
+        if (onMsg3Arrival(input_buf, output_buf, client)) {
+            socket.WriteCommand(ATT_CONFIRM, output_buf);
+            return true;
+        } else {
+            write_string("failed for msg 1", output_buf);
+            socket.WriteCommand(ATT_ERR, output_buf);
+            return false;
+        }
+    }
+
+    return false;
+}
+
+int response_attestation(Socket &socket) {
+    std::vector<uint8_t> input_buf, output_buf;
+    IASClient client("ias_cert.pem");
+
+    if (!handle_event(ATT_MSG0, socket, client)) {
         return -1;
     }
 
-    if (sp_ra_proc_msg0_req((const sample_ra_msg0_t *) input_buf.data(), input_buf.size())) {
-        write_string("attestation 0 fault", output_buf);
-        socket.WriteCommand(ATT_ERR, output_buf);
-        return -1;
-    }    
-
-    socket.WriteCommand(ATT_MSG0, output_buf);
-
-    socket.ReadCommand(cmd_type, input_buf);
-    if (cmd_type != ATT_MSG1) {
-        write_string("wrong message", output_buf);
-        socket.WriteCommand(ATT_ERR, output_buf);
+    if (!handle_event(ATT_MSG1, socket, client)) {
         return -1;
     }
 
+    if (!handle_event(ATT_MSG3, socket, client)) {
+        return -1;
+    }
+
+/*
     ra_samp_response_header_t *p_msg2, *p_result;
     if (sp_ra_proc_msg1_req((const sample_ra_msg1_t *) input_buf.data(), input_buf.size(), &p_msg2)) {
         write_string("attestation 1 fault", output_buf);
@@ -102,7 +194,7 @@ int response_attestation(Socket &socket) {
     memcpy(output_buf.data(), p_result->body, output_buf.size());
     socket.WriteCommand(ATT_MSG3, output_buf);
 
-/*
+
     socket.ReadCommand(cmd_type, input_buf);
     if (cmd_type != ATT_CONFIRM) {
         write_string("wrong message", output_buf);
@@ -115,7 +207,7 @@ int response_attestation(Socket &socket) {
     }
 */
 
-    free(p_msg2);
+    // free(p_msg2);
     // free(p_result);
 
     return 0;
