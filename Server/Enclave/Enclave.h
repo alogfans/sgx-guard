@@ -8,10 +8,8 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-    static sgx_aes_gcm_128bit_key_t aes_key = { 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
-                                                0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf };
-
+    // static sgx_aes_gcm_128bit_key_t aes_key = { 0 };
+    static uint8_t sealed_aes_key[512] = { 0 };
     int SetAesKey(const uint8_t *aes_key, int size);
     int GetAesKey(uint8_t *aes_key, int size);
     int EnclaveAesEncryption(const uint8_t *input_buffer, uint32_t size,
@@ -32,17 +30,6 @@ extern "C" {
 	};
 
 int enclave_ra_build_msg2(sgx_ec256_public_t *g_a, sgx_ra_msg2_t *msg2_raw, uint32_t msg2_len, const uint8_t *sig_rl, uint32_t sig_rl_size);
-
-	typedef struct {
-	    uint8_t counter[4];
-	    sgx_ec256_dh_shared_t shared_secret;
-	    uint8_t algorithm_id[4];
-	} hash_buffer_t;
-
-	const char ID_U[] = "SGXRAENCLAVE";
-	const char ID_V[] = "SGXRASERVER";
-
-	bool derive_key(const sgx_ec256_dh_shared_t *p_shared_key, uint8_t key_id, sgx_ec_key_128bit_t *first_derived_key, sgx_ec_key_128bit_t *second_derived_key);
 
 #if defined(__cplusplus)
 }

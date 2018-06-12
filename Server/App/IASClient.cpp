@@ -56,8 +56,9 @@ std::map<std::string, std::string> IASClient::report(const std::string &isvEncla
         return ret;
     }
 
-    ret["X-IASReport-Signature"] = response.headers["X-IASReport-Signature"];
-    ret["X-IASReport-SigningCertificate"] = response.headers["X-IASReport-SigningCertificate"];
+    for (auto &v : response.headers) {
+        ret[v.first] = v.second;
+    }    
 
     json output = json::parse(response.body);
 

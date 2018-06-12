@@ -13,11 +13,14 @@
 #include "Socket.h"
 #include "IASClient.h"
 
+#include "base64.h"
+
 #include <sgx_uae_service.h>
 #include <sgx_ukey_exchange.h>
 
 static sgx_enclave_id_t enclave_id;
 uint16_t server_port = 8080;
+IASClient client("./ias_cert.pem");
 
 void parse_arguments(int argc, char **argv) {
     CLI::App app{"SGX Guard Service"};
@@ -77,18 +80,34 @@ bool onMsg1Arrival(const std::vector<uint8_t> &msg1, std::vector<uint8_t> &msg2,
 
     int ret = 0;
     enclave_ra_build_msg2(enclave_id, &ret, &msg1_raw->g_a, msg2_raw, msg2.size(), (const uint8_t *) sigRL.c_str(), sigRL.size());
+    for (auto &v : msg2) {
+        printf("%02x ", v);
+    }
+    printf("\n");
     return (ret == 0);
 }
 
 bool onMsg3Arrival(const std::vector<uint8_t> &msg3, std::vector<uint8_t> &msg4, IASClient &client) {
     auto msg3_raw = (sgx_ra_msg3_t *) msg3.data();
-    printf("Quote %s\n", (char *) msg3_raw->quote);
-    std::string quote_str((char *) msg3_raw->quote);
+    char encoded_quote[2048] = { 0 };
+    Base64::Encode((char *) msg3_raw->quote, msg3.size() - offsetof(sgx_ra_msg3_t, quote), encoded_quote, 2048);
+    printf("Quote %s\n", encoded_quote);
+    std::string quote_str(encoded_quote);
     auto result = client.report(quote_str);
     if (result.empty()) {
         return false;
     }
+    if (result["isvEnclaveQuoteStatus"] != "OK" && result["isvEnclaveQuoteStatus"] != "GROUP_OUT_OF_DATE") {
+        printf("IAS report: %s\n", result["isvEnclaveQuoteStatus"].c_str());
+        return false;
+    }
+
     printf("Success!\n");
+    
+    for (auto &v : result) {
+        printf("%s : %s\n", v.first.c_str(), v.second.c_str());
+    }
+
     return true;
 }
 
@@ -142,7 +161,7 @@ bool handle_event(int expected_type, Socket &socket, IASClient &client) {
 
 int response_attestation(Socket &socket) {
     std::vector<uint8_t> input_buf, output_buf;
-    IASClient client("./ias_cert.pem");
+//    IASClient client("./ias_cert.pem");
 
     if (!handle_event(ATT_MSG0, socket, client)) {
         return -1;
@@ -163,7 +182,7 @@ void handle_routine(Socket &socket) {
     if (response_attestation(socket)) {
         return;
     }
-
+printf("CONTINUE ...\n");
     int cmd_type;
     sgx_status_t status;
     int ret = 0;
