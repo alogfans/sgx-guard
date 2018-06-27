@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="sgx_guard"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/home/alogfans/sgx-guard/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/home/alogfans/sgx-guard/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="/home/alogfans/sgx-guard/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="sgx_guard">
+				<Option output="/home/alogfans/sgx-guard/cmake-build-debug/sgx_guard" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/alogfans/sgx-guard/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/home/alogfans/sgx-guard/Client/App"/>
+					<Add directory="/home/alogfans/sgx-guard/Client/Enclave"/>
+					<Add directory="/home/alogfans/sgx-guard/Server/App"/>
+					<Add directory="/home/alogfans/sgx-guard/Server/Enclave"/>
+					<Add directory="/home/alogfans/sgx-guard/Shared"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 sgx_guard"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="sgx_guard/fast">
+				<Option output="/home/alogfans/sgx-guard/cmake-build-debug/sgx_guard" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/alogfans/sgx-guard/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/home/alogfans/sgx-guard/Client/App"/>
+					<Add directory="/home/alogfans/sgx-guard/Client/Enclave"/>
+					<Add directory="/home/alogfans/sgx-guard/Server/App"/>
+					<Add directory="/home/alogfans/sgx-guard/Server/Enclave"/>
+					<Add directory="/home/alogfans/sgx-guard/Shared"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 sgx_guard/fast"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/alogfans/sgx-guard/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/home/alogfans/sgx-guard/Client/App/App.cpp">
+			<Option target="sgx_guard"/>
+		</Unit>
+		<Unit filename="/home/alogfans/sgx-guard/Client/App/RAClient.cpp">
+			<Option target="sgx_guard"/>
+		</Unit>
+		<Unit filename="/home/alogfans/sgx-guard/Client/App/RAClient.h">
+			<Option target="sgx_guard"/>
+		</Unit>
+		<Unit filename="/home/alogfans/sgx-guard/Client/Enclave/Enclave.cpp">
+			<Option target="sgx_guard"/>
+		</Unit>
+		<Unit filename="/home/alogfans/sgx-guard/Client/Enclave/Enclave.h">
+			<Option target="sgx_guard"/>
+		</Unit>
+		<Unit filename="/home/alogfans/sgx-guard/Server/App/App.cpp">
+			<Option target="sgx_guard"/>
+		</Unit>
+		<Unit filename="/home/alogfans/sgx-guard/Server/App/IASClient.cpp">
+			<Option target="sgx_guard"/>
+		</Unit>
+		<Unit filename="/home/alogfans/sgx-guard/Server/App/IASClient.h">
+			<Option target="sgx_guard"/>
+		</Unit>
+		<Unit filename="/home/alogfans/sgx-guard/Server/App/RAServer.cpp">
+			<Option target="sgx_guard"/>
+		</Unit>
+		<Unit filename="/home/alogfans/sgx-guard/Server/App/RAServer.h">
+			<Option target="sgx_guard"/>
+		</Unit>
+		<Unit filename="/home/alogfans/sgx-guard/Server/App/base64.h">
+			<Option target="sgx_guard"/>
+		</Unit>
+		<Unit filename="/home/alogfans/sgx-guard/Server/App/json.h">
+			<Option target="sgx_guard"/>
+		</Unit>
+		<Unit filename="/home/alogfans/sgx-guard/Server/Enclave/Enclave.cpp">
+			<Option target="sgx_guard"/>
+		</Unit>
+		<Unit filename="/home/alogfans/sgx-guard/Server/Enclave/Enclave.h">
+			<Option target="sgx_guard"/>
+		</Unit>
+		<Unit filename="/home/alogfans/sgx-guard/Shared/CmdParser.h">
+			<Option target="sgx_guard"/>
+		</Unit>
+		<Unit filename="/home/alogfans/sgx-guard/Shared/EnclaveLoader.cpp">
+			<Option target="sgx_guard"/>
+		</Unit>
+		<Unit filename="/home/alogfans/sgx-guard/Shared/EnclaveLoader.h">
+			<Option target="sgx_guard"/>
+		</Unit>
+		<Unit filename="/home/alogfans/sgx-guard/Shared/Socket.cpp">
+			<Option target="sgx_guard"/>
+		</Unit>
+		<Unit filename="/home/alogfans/sgx-guard/Shared/Socket.h">
+			<Option target="sgx_guard"/>
+		</Unit>
+		<Unit filename="/home/alogfans/sgx-guard/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

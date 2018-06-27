@@ -14,13 +14,26 @@
 #include "IASClient.h"
 
 #include "base64.h"
+#include "RAServer.h"
 
 #include <sgx_uae_service.h>
 #include <sgx_ukey_exchange.h>
 
-static sgx_enclave_id_t enclave_id;
 uint16_t server_port = 8080;
+
+#define CMD_ENCRYPT 1
+#define CMD_DECRYPT 2
+#define CMD_SET_KEY 3
+#define CMD_ERR     4
+#define ATT_MSG0    100
+
+EnclaveLoader loader("enclave.signed.so", "enclave.token", 1);
 IASClient client("./ias_cert.pem");
+
+uint8_t sgid[] = {0x19, 0x0D, 0x7D, 0xF5, 0x89, 0x64, 0x16, 0x6B,
+                  0xE8, 0xD4, 0x48, 0x89, 0x22, 0x55, 0x90, 0x1D};
+
+RAServer attest(loader, client, sgid);
 
 void parse_arguments(int argc, char **argv) {
     CLI::App app{"SGX Guard Service"};
@@ -33,159 +46,15 @@ void parse_arguments(int argc, char **argv) {
     }
 }
 
-#define CMD_ENCRYPT 1
-#define CMD_DECRYPT 2
-#define CMD_SET_KEY 3
-#define CMD_ERR     4
-
-#define ATT_MSG0    100
-#define ATT_MSG1    101
-#define ATT_MSG2    102
-#define ATT_MSG3    103
-#define ATT_CONFIRM 105
-#define ATT_ERR     104
-
 void write_string(const std::string &str, std::vector<uint8_t> &buf) {
     buf.clear();
     buf.resize(str.size() + 1);
     memcpy(buf.data(), str.c_str(), buf.size());
 }
 
-bool onMsg0Arrival(const std::vector<uint8_t> &msg0) {
-    uint32_t extended_epid_group_id;
-    memcpy(&extended_epid_group_id, msg0.data(), sizeof(uint32_t));
-    if (extended_epid_group_id) {
-        return false;
-    }
-
-    return true;
-}
-
-bool onMsg1Arrival(const std::vector<uint8_t> &msg1, std::vector<uint8_t> &msg2, IASClient &client) {
-    auto msg1_raw = (sgx_ra_msg1_t *) msg1.data();
-
-    char gid[10];
-    sprintf(gid, "%02X%02X%02X%02X", msg1_raw->gid[3], msg1_raw->gid[2], msg1_raw->gid[1], msg1_raw->gid[0]);
-    printf("%s\n", gid);
-
-    std::string sigRL;
-    if (!client.retrieveSigRL(gid, sigRL)) {
-        return false;
-    }
-
-    msg2.resize(sizeof(sgx_ra_msg2_t) + sigRL.size());
-    memset(msg2.data(), 0, msg2.size());
-
-    auto msg2_raw = (sgx_ra_msg2_t *) msg2.data();
-
-    int ret = 0;
-    enclave_ra_build_msg2(enclave_id, &ret, &msg1_raw->g_a, msg2_raw, msg2.size(), (const uint8_t *) sigRL.c_str(), sigRL.size());
-    for (auto &v : msg2) {
-        printf("%02x ", v);
-    }
-    printf("\n");
-    return (ret == 0);
-}
-
-bool onMsg3Arrival(const std::vector<uint8_t> &msg3, std::vector<uint8_t> &msg4, IASClient &client) {
-    auto msg3_raw = (sgx_ra_msg3_t *) msg3.data();
-    char encoded_quote[2048] = { 0 };
-    Base64::Encode((char *) msg3_raw->quote, msg3.size() - offsetof(sgx_ra_msg3_t, quote), encoded_quote, 2048);
-    printf("Quote %s\n", encoded_quote);
-    std::string quote_str(encoded_quote);
-    auto result = client.report(quote_str);
-    if (result.empty()) {
-        return false;
-    }
-    if (result["isvEnclaveQuoteStatus"] != "OK" && result["isvEnclaveQuoteStatus"] != "GROUP_OUT_OF_DATE") {
-        printf("IAS report: %s\n", result["isvEnclaveQuoteStatus"].c_str());
-        return false;
-    }
-
-    printf("Success!\n");
-    
-    for (auto &v : result) {
-        printf("%s : %s\n", v.first.c_str(), v.second.c_str());
-    }
-
-    return true;
-}
-
-bool handle_event(int expected_type, Socket &socket, IASClient &client) {
-    int cmd_type;
-    std::vector<uint8_t> input_buf, output_buf;
-
-    socket.ReadCommand(cmd_type, input_buf);
-    if (cmd_type != expected_type) {
-        write_string("wrong message", output_buf);
-        socket.WriteCommand(ATT_ERR, output_buf);
-        return false;
-    }
-
-    // do operation now
-    if (cmd_type == ATT_MSG0) {
-        if (onMsg0Arrival(input_buf)) {
-            socket.WriteCommand(ATT_MSG0, output_buf);
-            return true;
-        } else {
-            write_string("failed for msg 0", output_buf);
-            socket.WriteCommand(ATT_ERR, output_buf);
-            return false;
-        }
-    }
-
-    if (cmd_type == ATT_MSG1) {
-        if (onMsg1Arrival(input_buf, output_buf, client)) {
-            socket.WriteCommand(ATT_MSG2, output_buf);
-            return true;
-        } else {
-            write_string("failed for msg 1", output_buf);
-            socket.WriteCommand(ATT_ERR, output_buf);
-            return false;
-        }
-    }
-
-    if (cmd_type == ATT_MSG3) {
-        if (onMsg3Arrival(input_buf, output_buf, client)) {
-            socket.WriteCommand(ATT_CONFIRM, output_buf);
-            return true;
-        } else {
-            write_string("failed for msg 1", output_buf);
-            socket.WriteCommand(ATT_ERR, output_buf);
-            return false;
-        }
-    }
-
-    return false;
-}
-
-int response_attestation(Socket &socket) {
-    std::vector<uint8_t> input_buf, output_buf;
-//    IASClient client("./ias_cert.pem");
-
-    if (!handle_event(ATT_MSG0, socket, client)) {
-        return -1;
-    }
-
-    if (!handle_event(ATT_MSG1, socket, client)) {
-        return -1;
-    }
-
-    if (!handle_event(ATT_MSG3, socket, client)) {
-        return -1;
-    }
-
-    return 0;
-}
-
 void handle_routine(Socket &socket) {
-    if (response_attestation(socket)) {
-        return;
-    }
-printf("CONTINUE ...\n");
     int cmd_type;
-    sgx_status_t status;
-    int ret = 0;
+    sgx_status_t ret, ret_call;
     std::vector<uint8_t> input_buf, output_buf;
 
     socket.ReadCommand(cmd_type, input_buf);
@@ -199,24 +68,34 @@ printf("CONTINUE ...\n");
     switch (cmd_type) {
     case CMD_ENCRYPT:
         output_buf.resize(input_buf.size() + 16);
-        status = EnclaveAesEncryption(enclave_id, &ret, input_buf.data(), input_buf.size(), output_buf.data() + 16, output_buf.data());
+        ret = enclave_aes_encrypt(
+                loader.enclave_id,
+                &ret_call,
+                input_buf.data(),
+                input_buf.size(),
+                output_buf.data() + 16,
+                output_buf.data());
+
         break;
 
     case CMD_DECRYPT:
         output_buf.resize(input_buf.size() - 16);
-        status = EnclaveAesDecryption(enclave_id, &ret, input_buf.data() + 16, output_buf.size(), output_buf.data(), input_buf.data());
+        ret = enclave_aes_decrypt(
+                loader.enclave_id,
+                &ret_call,
+                input_buf.data() + 16,
+                output_buf.size(),
+                output_buf.data(),
+                input_buf.data());
+
+        break;
+
+    case ATT_MSG0:
+        attest.Attest(socket, input_buf);
         break;
 
     case CMD_SET_KEY:
-        status = SetAesKey(enclave_id, &ret, input_buf.data(), input_buf.size());
-        /*{
-            std::vector<uint8_t> buf;
-            buf.resize(16);
-            GetAesKey(enclave_id, &ret, buf.data(), 16);
-            for (auto &v : buf) {
-                printf("%c\n", (char) v);
-            }
-        }*/
+        ret = enclave_aes_key(loader.enclave_id, &ret, input_buf.data(), input_buf.size());
         break;
 
     default:
@@ -225,9 +104,9 @@ printf("CONTINUE ...\n");
         return;
     }
 
-    if (status || ret) {
+    if (ret_call || ret) {
         char buf[1024];
-        sprintf(buf, "Enclave function failed, status %X, ret %X", status, ret);
+        sprintf(buf, "Enclave function failed, ret %X, ret_call %X", ret, ret_call);
         write_string(buf, output_buf);
         socket.WriteCommand(CMD_ERR, output_buf);
         return;
@@ -237,8 +116,6 @@ printf("CONTINUE ...\n");
 }
 
 int SGX_CDECL main(int argc, char **argv) {
-    EnclaveLoader loader("enclave.signed.so", "enclave.token", 1);
-    enclave_id = loader.enclave_id;
     parse_arguments(argc, argv);
 
     auto listener_fd = Socket::Listen(server_port);

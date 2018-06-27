@@ -10,17 +10,17 @@
 #include "Enclave_u.h"
 #include "Socket.h"
 
-class Attester {
+class RAClient {
 public:
-    Attester(const EnclaveLoader &loader);
-    virtual ~Attester();
+    RAClient(const EnclaveLoader &loader);
+    virtual ~RAClient();
 
     void Attest(Socket &socket);
 
-private:
-    void buildMsg0(std::vector<uint8_t> &msg);
-    void buildMsg1(std::vector<uint8_t> &msg);
-    void buildMsg3(const std::vector<uint8_t> &recv_msg2, std::vector<uint8_t> &msg);
+public:
+    void buildMsg0(std::vector<uint8_t> &msg0);
+    void buildMsg1(std::vector<uint8_t> &msg1);
+    void buildMsg3(const std::vector<uint8_t> &msg2, std::vector<uint8_t> &msg3);
 
 private:
     uint32_t epid_group_id;

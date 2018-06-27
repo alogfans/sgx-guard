@@ -17,7 +17,7 @@
 
 #include "Enclave_u.h"
 #include "Socket.h"
-#include "Attester.h"
+#include "RAClient.h"
 
 std::string server_host = "localhost";
 uint16_t server_port = 8080;
@@ -31,8 +31,11 @@ uint16_t server_port = 8080;
 int cmd_type;
 std::string plain_path, cipher_path;
 
+std::string plain_aes_key_str;
+uint8_t plain_aes_key[16];
+
 void parse_arguments(int argc, char **argv) {
-    CLI::App app{"SGX Guard Service"};
+    CLI::App app{"SGX Client"};
     app.add_option("-s,--server", server_host, "Host of SGX Guard Service provider");
     app.add_option("-p,--port", server_port, "Tcp port that provide SGX Guard Service");
 
@@ -42,8 +45,9 @@ void parse_arguments(int argc, char **argv) {
     auto decrypt_cmd = app.add_subcommand("decrypt", "Decrypt a local file");
     decrypt_cmd->add_option("--plain", plain_path, "Plain document path")->required(true);
     decrypt_cmd->add_option("--cipher", cipher_path, "Cipher document path")->required(true);
-    auto setkey_cmd = app.add_subcommand("setkey", "Set server's AES key");
-    setkey_cmd->add_option("--keyfile", plain_path, "AES 128bit key file")->required(true);
+    auto setkey_cmd = app.add_subcommand("config", "Config with AES key");
+    setkey_cmd->add_option("--aes-key", plain_aes_key_str, "AES key, should be represented as hex literal (16 bytes)")->required(true);
+
     app.require_subcommand(1);
 
     try {
@@ -100,10 +104,34 @@ void write_all(const std::string &path, const std::vector<uint8_t> &buf) {
     close(fd);
 }
 
-int SGX_CDECL main(int argc, char **argv) {
-    EnclaveLoader loader("enclave.signed.so", "enclave.token", 1);
-    Attester attester(loader);
+bool build_aes_key() {
+    if (plain_aes_key_str.size() != 32) {
+        printf("error: illegal aes_key: should be exact 16 bytes like '00112233445566778899AABBCCDDEEFF'\n");
+        exit(EXIT_FAILURE);
+    }
 
+    for (int i = 0; i < 16; i++) {
+        plain_aes_key[i] = 0;
+        for (int k = 0 ; k < 2; k++) {
+            char ch = plain_aes_key[i * 2 + k];
+            if (ch >= '0' && ch <= '9') {
+                plain_aes_key[i] = plain_aes_key[i] * 16 + ch - '0';
+            } else if (ch >= 'A' && ch <= 'F') {
+                plain_aes_key[i] = plain_aes_key[i] * 16 + ch - 'A';
+            } else if (ch >= 'a' && ch <= 'f') {
+                plain_aes_key[i] = plain_aes_key[i] * 16 + ch - 'a';
+            } else {
+                printf("error: illegal aes_key: should be exact 16 bytes like '00112233445566778899AABBCCDDEEFF'\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+}
+
+EnclaveLoader loader("enclave.signed.so", "enclave.token", 1);
+RAClient attest(loader);
+
+int SGX_CDECL main(int argc, char **argv) {
     parse_arguments(argc, argv);
 
     auto socket = Socket::Connect(server_host, server_port);
@@ -111,25 +139,22 @@ int SGX_CDECL main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    attester.Attest(socket);
-
-    std::vector<uint8_t> dummy, data_stream;
+    std::vector<uint8_t> data_stream;
 
     if (cmd_type == CMD_SET_KEY) {
-        read_all(plain_path, dummy);
-        if (dummy.size() < 16) {
-            printf("File is too short. must be 16 bytes\n");
-            return EXIT_FAILURE;
-        }
-        int ret = 0, sealed_size = 0;
-        sgx_status_t status; 
+        build_aes_key();
+        attest.Attest(socket);
+
+        int sealed_size = 0;
+        sgx_status_t ret, ret_call;
         enclave_seal_size(loader.enclave_id, &sealed_size, 16);
         data_stream.resize(sealed_size);
-        status = enclave_seal_aes_key(loader.enclave_id, &ret, dummy.data(), sealed_size, data_stream.data());
-        if (status || ret) {
-             printf("enclave_seal_aes_key error %x %x\n", status, ret);
-             return EXIT_FAILURE;
+        ret = enclave_seal_aes_key(loader.enclave_id, &ret_call, plain_aes_key, sealed_size, data_stream.data());
+        if (ret || ret_call) {
+            printf("enclave_seal_aes_key error %x %x\n", ret, ret_call);
+            return EXIT_FAILURE;
         }
+
     } else if (cmd_type == CMD_ENCRYPT) {
         read_all(plain_path, data_stream);
     } else if (cmd_type == CMD_DECRYPT) {
@@ -153,6 +178,8 @@ int SGX_CDECL main(int argc, char **argv) {
     } else if (cmd_type == CMD_DECRYPT) {
         write_all(plain_path, data_stream);
     }
+
+    printf("Success!\n");
 
     return 0;
 }

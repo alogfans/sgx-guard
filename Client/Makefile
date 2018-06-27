@@ -20,7 +20,7 @@ else
 	Urts_Library_Name := sgx_urts
 endif
 
-App_Cpp_Files := App/App.cpp App/Attester.cpp $(wildcard ../Shared/*.cpp)
+App_Cpp_Files := App/App.cpp App/RAClient.cpp $(wildcard ../Shared/*.cpp)
 App_Include_Paths := -IInclude -IApp -I$(SGX_SDK)/include -I../Shared
 
 App_C_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes $(App_Include_Paths)

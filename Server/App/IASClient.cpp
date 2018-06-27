@@ -26,7 +26,7 @@ IASClient::~IASClient() {
 bool IASClient::retrieveSigRL(const std::string &gid, std::string &sigRL) {
     RestClient::Response response = conn->get("/attestation/sgx/v2/sigrl/" + gid);
     if (response.code != 200) {
-        printf("retrieveSigRL : response code %d\n", response.code);
+        printf("retrieveSigRL failed. Response code %d\n", response.code);
         return false;
     }
 
@@ -52,7 +52,7 @@ std::map<std::string, std::string> IASClient::report(const std::string &isvEncla
     RestClient::Response response = conn->post("/attestation/sgx/v2/report", input.dump(4));
 
     if (response.code != 200) {
-        printf("report : response code %d\n", response.code);
+        printf("report failed. response code %d\n", response.code);
         return ret;
     }
 
