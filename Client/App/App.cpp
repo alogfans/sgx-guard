@@ -113,7 +113,7 @@ bool build_aes_key() {
     for (int i = 0; i < 16; i++) {
         plain_aes_key[i] = 0;
         for (int k = 0 ; k < 2; k++) {
-            char ch = plain_aes_key[i * 2 + k];
+            char ch = plain_aes_key_str[i * 2 + k];
             if (ch >= '0' && ch <= '9') {
                 plain_aes_key[i] = plain_aes_key[i] * 16 + ch - '0';
             } else if (ch >= 'A' && ch <= 'F') {
@@ -121,7 +121,7 @@ bool build_aes_key() {
             } else if (ch >= 'a' && ch <= 'f') {
                 plain_aes_key[i] = plain_aes_key[i] * 16 + ch - 'a';
             } else {
-                printf("error: illegal aes_key: should be exact 16 bytes like '00112233445566778899AABBCCDDEEFF'\n");
+                printf("ch %d\n", i*2+k);
                 exit(EXIT_FAILURE);
             }
         }

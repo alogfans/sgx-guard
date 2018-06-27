@@ -27,6 +27,7 @@ bool RAServer::onMsg0Arrival(const std::vector<uint8_t> &msg0) {
     if (extended_epid_group_id) {
         return false;
     }
+    return true;
 }
 
 bool RAServer::onMsg1Arrival(const std::vector<uint8_t> &msg1, std::vector<uint8_t> &msg2) {

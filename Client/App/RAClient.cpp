@@ -97,11 +97,12 @@ void assert_msg(int cmd_type_ret, int cmd_type_should, const std::vector<uint8_t
 void RAClient::Attest(Socket &socket) {
     int cmd_type_ret;
     std::vector<uint8_t> msg0, msg1, msg2, msg3, msg4;
-
+    printf("checkpoint: start attestation\n");
     // msg0 -- msg0_cbk
     buildMsg0(msg0);
     socket.WriteCommand(ATT_MSG0, msg0);
     socket.ReadCommand(cmd_type_ret, msg0);
+    printf("%d\n", cmd_type_ret);
     assert_msg(cmd_type_ret, ATT_MSG0_ACK, msg0);
 
     // msg1 -- msg2

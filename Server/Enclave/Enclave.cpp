@@ -102,7 +102,16 @@ sgx_status_t enclave_ra_build_msg2(sgx_ec256_public_t *g_a,
     msg2_raw->kdf_id = 1;
     memcpy(msg2_raw->sig_rl, sig_rl, sig_rl_size);
 
-    CHECK(sgx_ecdsa_sign((uint8_t *) &gb_ga, sizeof(gb_ga), &private_key, &msg2_raw->sign_gb_ga, ecc_state));
+	static sgx_ec256_private_t g_sp_priv_key = {
+	    {
+	        0x90, 0xe7, 0x6c, 0xbb, 0x2d, 0x52, 0xa1, 0xce,
+	        0x3b, 0x66, 0xde, 0x11, 0x43, 0x9c, 0x87, 0xec,
+	        0x1f, 0x86, 0x6a, 0x3b, 0x65, 0xb6, 0xae, 0xea,
+	        0xad, 0x57, 0x34, 0x53, 0xd1, 0x03, 0x8c, 0x01
+	    }
+	};
+
+    CHECK(sgx_ecdsa_sign((uint8_t *) &gb_ga, sizeof(gb_ga), &g_sp_priv_key, &msg2_raw->sign_gb_ga, ecc_state));
 
     const uint32_t mac_size = offsetof(sgx_ra_msg2_t, mac);
     CHECK(sgx_rijndael128_cmac_msg(&smk_key, (uint8_t *) msg2_raw, mac_size, &msg2_raw->mac));
